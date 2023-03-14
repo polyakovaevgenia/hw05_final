@@ -1,0 +1,18 @@
+<!-- templates/posts/index.html -->
+{% extends 'base.html' %}
+{% block title %}
+  Социальная сеть Yatube
+{% endblock %}
+{% block content %} 
+  {% load cache %} 
+  {% cache 20 index_page %}
+  <div class="container py-5">     
+    <h1>Последние обновления на сайте</h1> 
+    {% include 'posts/includes/switcher.html' with index=True %} 
+    {% for post in page_obj %}
+      {% include 'includes/article.html' with group_post_link=True author_posts_link=True %}
+    {% endfor %}
+    {% include 'posts/includes/paginator.html' %}
+  </div> 
+  {% endcache %}
+{% endblock %} 
