@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
+from ..models import Group, Post, Comment
 
 User = get_user_model()
 
@@ -42,3 +42,25 @@ class GroupModelTest(TestCase):
         group = str(self.group)
         expected_group_name = self.group.title
         self.assertEqual(group, expected_group_name)
+
+
+class CommentModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth3')
+        cls.post = Post.objects.create(
+            author=cls.user,
+            text='Новый пост',
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Мой комментарий',
+        )
+
+    def test_comment_have_correct_object_name(self):
+        """Проверяем, что у модели комментарий корректно работает __str__."""
+        comment = str(self.comment)
+        excepted_comment = self.comment.text
+        self.assertEqual(comment, excepted_comment)

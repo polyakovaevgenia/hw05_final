@@ -207,7 +207,9 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(text=form_fields['text'],
-                                image='posts/small.gif').exists()
+                                image='posts/small.gif',
+                                author=self.user,
+                                group=None).exists()
         )
 
 
@@ -218,18 +220,13 @@ class CommentCreateFormTests(TestCase):
         cls.user = User.objects.create_user(username='Author')
         cls.author_client = Client()
         cls.author_client.force_login(cls.user)
-        cls.group4 = Group.objects.create(
-            title='test-title4',
-            slug='test-slug4',
-            description='test-description4',
-        )
+        cls.guest_client = Client()
 
-    def add_comment(self):
+    def test_add_comment(self):
         """Валидная форма создает комментарий."""
         post = Post.objects.create(
             author=self.user,
-            text='test-text61',
-            group=self.group4
+            text='test-text61'
         )
         comments_count = Comment.objects.count()
         form_data = {
@@ -244,3 +241,24 @@ class CommentCreateFormTests(TestCase):
                              reverse('posts:post_detail',
                                      kwargs={'post_id': post.pk, })),
         self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertTrue(
+            Comment.objects.filter(text=form_data['text'],).exists()
+        )
+
+    def test_guest_can_not_add_comment(self):
+        """Неавторизованный пользователь не может создает комментарий."""
+        post = Post.objects.create(
+            author=self.user,
+            text='test-text61'
+        )
+        form_data = {
+            'text': 'test-text-text-guest',
+        }
+        self.guest_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': post.pk, }),
+            data=form_data,
+            follow=True,)
+
+        self.assertFalse(
+            Comment.objects.filter(text=form_data['text'],).exists()
+        )

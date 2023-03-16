@@ -8,13 +8,11 @@ POST_SYMBOLS_NUMBER = 15
 
 
 class Group(models.Model):
-    title = models.CharField(max_length=200,
-                             verbose_name='Заголовок')
-    slug = models.SlugField(max_length=30,
+    title = models.CharField('Заголовок', max_length=200)
+    slug = models.SlugField('Путь', max_length=30,
                             unique=True,
-                            db_index=True,
-                            verbose_name='Путь')
-    description = models.TextField(verbose_name='Описание')
+                            db_index=True)
+    description = models.TextField('Описание')
 
     class Meta:
         verbose_name = 'Группа'
@@ -25,9 +23,8 @@ class Group(models.Model):
 
 
 class Post(models.Model):
-    text = models.TextField(verbose_name='Текст')
-    pub_date = models.DateTimeField(auto_now_add=True,
-                                    verbose_name='Дата публикации')
+    text = models.TextField('Текст')
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -70,7 +67,7 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name='Автор'
     )
-    text = models.TextField(verbose_name='Текст')
+    text = models.TextField('Текст')
     created = models.DateTimeField('Дата и время публикации',
                                    auto_now_add=True)
 
@@ -94,3 +91,14 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(author=models.F('user')),
+                name='can_not_subscribe_to_yourself'),
+            models.UniqueConstraint(fields=['user', 'author'],
+                                    name='unique_subscription')
+        ]

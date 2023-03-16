@@ -10,8 +10,10 @@ class PostForm(forms.ModelForm):
 
     def clean_text(self):
         data = self.cleaned_data['text']
-        if data == '':
-            raise forms.ValidationError('Обязательно заполните поле!')
+        if 'Инстаграм' in data.lower():
+            raise forms.ValidationError('Это слово использовать нельзя!')
+        elif 'Отстой' in data.lower():
+            raise forms.ValidationError('Это слово использовать нельзя!')
         return data
 
 

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
 
-from ..models import Group, Post, Follow
+from ..models import Group, Post, Follow, Comment
 
 
 User = get_user_model()
@@ -52,6 +52,11 @@ class PostPagesTest(TestCase):
             user=cls.user_follower,
             author=cls.user2,
         )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user_follower,
+            text='My-comment',
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -80,6 +85,7 @@ class PostPagesTest(TestCase):
             reverse('posts:post_create'): 'posts/create_post.html',
             reverse('posts:post_edit', kwargs={'post_id': f'{self.post.pk}'}):
             'posts/create_post.html',
+            reverse('posts:follow_index'): 'posts/follow.html',
         }
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
@@ -119,10 +125,19 @@ class PostPagesTest(TestCase):
         response = self.author_client.get(
             reverse('posts:post_detail', kwargs={'post_id':
                                                  f'{self.post.pk}'}))
+        form_fields = {
+            'text': forms.fields.CharField,
+        }
         first_object = response.context['post']
         self.assertEqual(first_object.text, self.post.text)
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+        comments_count = Comment.objects.count()
+        self.assertEqual(first_object.comments.count(), comments_count)
 
     def test_post_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -130,6 +145,7 @@ class PostPagesTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -143,6 +159,7 @@ class PostPagesTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -222,8 +239,8 @@ class PostPagesTest(TestCase):
         self.assertEqual(page_content, cached_page_content)
         self.assertNotEqual(cached_page_content, cleared_page_content)
 
-    def test_authorized_client_follower_can_subscribe_unsubscribe(self):
-        """Авторизованный пользователь может подписываться и отписываться."""
+    def test_authorized_client_follower_can_subscribe(self):
+        """Авторизованный пользователь может подписываться."""
         self.authorized_client_follower.post(reverse(
             'posts:profile_follow', kwargs={'username': self.user2}))
         self.assertTrue(
@@ -233,6 +250,8 @@ class PostPagesTest(TestCase):
             ).exists()
         )
 
+    def test_authorized_client_follower_can_unsubscribe(self):
+        """Авторизованный пользователь может отписываться."""
         self.authorized_client_follower.post(reverse(
             'posts:profile_unfollow', kwargs={'username': self.user2}))
         self.assertFalse(

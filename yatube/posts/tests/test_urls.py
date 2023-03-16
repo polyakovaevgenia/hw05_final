@@ -42,6 +42,7 @@ class PostURLTests(TestCase):
             f'/posts/{self.post.pk}/': 'posts/post_detail.html',
             f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
+            '/follow/': 'posts/follow.html',
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
@@ -95,25 +96,36 @@ class PostURLTests(TestCase):
             response, f'/posts/{self.post.pk}/'
         )
 
-    def test_page_not_exists(self):
-        """Страница не доступна."""
-        response = self.guest_client.get('/posts/not-exist/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-
     def test_post_edit_page_not_exists(self):
         """Страница edit не доступна зарегистрированному не автору поста."""
-        response = self.authorized_client.get(
+        response = self.guest_client.get(
             f'/posts/{self.post.pk}/edit/')
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def add_comment_page_not_exists_for_guest(self):
+    def test_error_page(self):
+        """Страница 404 отдаёт кастомный шаблон."""
+        response = self.authorized_client.get('/aabbccddee/')
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertTemplateUsed(response, 'core/404.html')
+
+    def test_add_comment_page_not_exists_for_guest(self):
         """Страница addcomment недоступна неавторизованному пользователю."""
         response = self.guest_client.get(
             f'/posts/{self.post.pk}/comment/')
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
-    def add_comment_page_for_authorized_client(self):
+    def test_add_comment_page_for_authorized_client(self):
         """Страница addcomment доступна авторизованному пользователю."""
         response = self.authorized_client.get(
             f'/posts/{self.post.pk}/comment/')
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
+    def tets_follow_page_not_exists_for_guest(self):
+        """Страница follow недоступна неавторизованному пользователю."""
+        response = self.guest_client.get('/follow/')
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
+    def tets_follow_page_not_exists_for_authorized_client(self):
+        """Страница follow доступна авторизованному пользователю."""
+        response = self.authorized_client.get('/follow/')
         self.assertEqual(response.status_code, HTTPStatus.OK)
