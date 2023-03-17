@@ -102,3 +102,6 @@ class Follow(models.Model):
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='unique_subscription')
         ]
+
+    def __str__(self):
+        return self.author

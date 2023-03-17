@@ -242,7 +242,9 @@ class CommentCreateFormTests(TestCase):
                                      kwargs={'post_id': post.pk, })),
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertTrue(
-            Comment.objects.filter(text=form_data['text'],).exists()
+            Comment.objects.filter(text=form_data['text'],
+                                   author=self.user,
+                                   post=post).exists()
         )
 
     def test_guest_can_not_add_comment(self):
@@ -251,6 +253,7 @@ class CommentCreateFormTests(TestCase):
             author=self.user,
             text='test-text61'
         )
+        comments_count = Comment.objects.count()
         form_data = {
             'text': 'test-text-text-guest',
         }
@@ -259,6 +262,4 @@ class CommentCreateFormTests(TestCase):
             data=form_data,
             follow=True,)
 
-        self.assertFalse(
-            Comment.objects.filter(text=form_data['text'],).exists()
-        )
+        self.assertEqual(Comment.objects.count(), comments_count)

@@ -33,6 +33,9 @@ class PostPagesTest(TestCase):
         cls.user_follower = User.objects.create_user(username='follower')
         cls.authorized_client_follower = Client()
         cls.authorized_client_follower.force_login(cls.user_follower)
+        cls.user_follower2 = User.objects.create_user(username='follower2')
+        cls.authorized_client_follower2 = Client()
+        cls.authorized_client_follower2.force_login(cls.user_follower2)
         cls.group = Group.objects.create(
             title='test-group',
             slug='test-slug',
@@ -132,10 +135,8 @@ class PostPagesTest(TestCase):
         self.assertEqual(first_object.text, self.post.text)
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
+        expected_value = response.context.get('form').fields.get('text')
+        self.assertIsInstance(expected_value, form_fields['text'])
         comments_count = Comment.objects.count()
         self.assertEqual(first_object.comments.count(), comments_count)
 
@@ -241,7 +242,8 @@ class PostPagesTest(TestCase):
 
     def test_authorized_client_follower_can_subscribe(self):
         """Авторизованный пользователь может подписываться."""
-        self.authorized_client_follower.post(reverse(
+        followers_count = Follow.objects.count()
+        self.authorized_client_follower2.post(reverse(
             'posts:profile_follow', kwargs={'username': self.user2}))
         self.assertTrue(
             Follow.objects.filter(
@@ -249,9 +251,11 @@ class PostPagesTest(TestCase):
                 author=self.following.author
             ).exists()
         )
+        self.assertEqual(Follow.objects.count(), followers_count + 1)
 
     def test_authorized_client_follower_can_unsubscribe(self):
         """Авторизованный пользователь может отписываться."""
+        followers_count = Follow.objects.count()
         self.authorized_client_follower.post(reverse(
             'posts:profile_unfollow', kwargs={'username': self.user2}))
         self.assertFalse(
@@ -260,6 +264,7 @@ class PostPagesTest(TestCase):
                 author=self.following.author
             ).exists()
         )
+        self.assertEqual(Follow.objects.count(), followers_count - 1)
 
     def test_new_post_for_follower_and_unfollower(self):
         """Проверка отображения поста у не-/подписчика."""
